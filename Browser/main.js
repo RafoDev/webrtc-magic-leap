@@ -3,6 +3,7 @@
 const hostInput = document.getElementById('host');
 const startButton = document.getElementById('startButton');
 const hangupButton = document.getElementById('hangupButton');
+
 // hangupButton.disabled = true;
 startButton.addEventListener('click', start);
 hangupButton.addEventListener('click', hangup);
@@ -45,7 +46,7 @@ let dataChannel;
 let interval;
 
 const mediaConstraints = {
-  audio: false,
+  audio: true,
   video: true
 }
 
@@ -57,17 +58,24 @@ const offerOptions = {
 
 async function start() {
   try {
+    // to capture media streams -> stream is a MediaStream object 
     const stream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
-    console.log('Received local stream');
+
+    console.log('Received local stream', stream);
+
+    // reproduce locally the stream
     localVideo1.srcObject = stream;
+    
     localStream = stream;
+  
   } catch (e) {
     alert(`getUserMedia() error: ${e.name}`);
   }
 
   updateStreams();
 
-  host = hostInput.value;   
+  // host = hostInput.value;
+  host = 'b604-2800-4b0-8439-8957-b5ad-104a-1a9b-2e66.sa.ngrok.io';
   server = 'https://' + host;
 
   let response = await fetch(server + '/login', { method: 'POST' });
@@ -77,10 +85,13 @@ async function start() {
   let config = {
     'iceServers': [
       { 'url' : 'stun:stun.l.google.com:19302' },
-      { 'url' : 'stun:' + host + ':3478' },
-      { 'url' : 'turn:' + host + ':3478', credential: 'foo', username: 'bar' },
+      // { 'url' : 'stun:' + host + ':3478' },
+      { 'url' : 'turn:' + host, credential: 'foo', username: 'bar' },
     ]
   }
+
+  // peer connection
+
   pc = new RTCPeerConnection(config);
 
   pc.addEventListener("iceconnectionstatechange", async function(ev) {
@@ -102,7 +113,8 @@ async function start() {
 
   pc.addEventListener('track', function(ev) {
     console.log('Track received');
-    remoteVideo.srcObject = ev.streams[0];
+    const [remoteStream] = ev.streams;
+    remoteVideo.srcObject = remoteStream;
     updateStreams();
   });
 
